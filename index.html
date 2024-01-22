@@ -1,0 +1,94 @@
+<html class="">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Glamour markdown review</title>
+    <script src="/static/xterm/xterm.js"></script>
+    <link rel="stylesheet" href="/static/xterm/xterm.css" />
+  </head>
+  <body>
+    <div id="glamour-content">
+      <textarea id="glamour-markdown-input" rows="30" cols="100"></textarea>
+      <br /><br />
+      <button id="glamour-convert-button" width="100">Convert</button>
+      <br /><br />
+      <div id="glamour-review"></div>
+    </div>
+    <script>
+      // get the elements
+      var markdownInput = document.getElementById("glamour-markdown-input");
+      var convertButton = document.getElementById("glamour-convert-button");
+      var review = document.getElementById("glamour-review");
+      // new terminal with 30 rows and 100 columns
+      var term = new Terminal({
+        rows: 30,
+        cols: 100,
+      });
+
+      markdownInput.value = `# hello
+
+arstarstarst
+
+## world
+
+arstarstarst
+
+
+**test**
+
+- [ ] tests
+- [x] yellow`;
+
+      term.open(document.getElementById("glamour-review"));
+
+      // add the event listener
+      convertButton.addEventListener("click", function () {
+        // get the glamour-markdown from the input
+        var markdown = markdownInput.value;
+
+        // create the request
+        var request = new XMLHttpRequest();
+
+        // set the request url
+        request.open("POST", "http://localhost:8080/api/md", true);
+
+        // set the request header
+        request.setRequestHeader("content-Type", "text/plain");
+
+        // set the request response type
+        request.responseType = "json";
+
+        // set the request onload function
+        request.onload = function () {
+          // get the response
+          var response = request.response;
+          // clear terminal
+          term.clear();
+          term.reset();
+          term.writeln(" Help screen title\n");
+
+          term.writeln(response.markdown);
+
+          // // for each line in the response
+          // response.lines.forEach(function (line) {
+          //   // write the line in the terminal
+          //   term.write(line);
+          // });
+        };
+
+        var data = JSON.stringify({ markdown });
+
+        // // break markdown in lines
+        // var lines = markdown.split("\n");
+        // // remove empty lines
+        // lines = lines.filter(function (line) {
+        //   return line !== "";
+        // });
+
+        // // send the request in json format
+        // var data = JSON.stringify({ lines });
+        console.log(data);
+        request.send(data);
+      });
+    </script>
+  </body>
+</html>
