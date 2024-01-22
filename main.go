@@ -44,7 +44,7 @@ func setupRouter() *gin.Engine {
 
 		r, _ := glamour.NewTermRenderer(
 			glamour.WithAutoStyle(),
-			glamour.WithWordWrap(102),
+			glamour.WithWordWrap(100),
 		)
 
 		// Render the markdown
