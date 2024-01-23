@@ -21,22 +21,23 @@
       // new terminal with 30 rows and 100 columns
       var term = new Terminal({
         rows: 30,
-        cols: 98,
+        cols: 100,
       });
 
-      markdownInput.value = `# hello
+      markdownInput.value = `## PE versions
 
-arstarstarst
+PE versions are released in two release tracks:
 
-## world
+* **PE 2023.y** (leading-edge)
+* **PE 2021.7.z** (long-term support)
 
-arstarstarst
+The latest version in each track is supported.
 
-
-**test**
-
-- [ ] tests
-- [x] yellow`;
+|Release track|First available|Includes|Suitable if|
+|---|---|---|---|
+|2023.y|January 2023|New features, enhancements, and fixes|You want new features|
+|2021.7.z (LTS)|August 2022|Enhancements and fixes|You want stability|
+`;
 
       term.open(document.getElementById("glamour-review"));
 
