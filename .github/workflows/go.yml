@@ -1,28 +1,94 @@
-# This workflow will build a golang project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
-
-name: Go
+name: Cli build
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+  repository_dispatch:
+    types: [create-release]
 
 jobs:
-
   build:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        build:
+          [
+            {
+              name: md_review,
+              filePath: ./md_review,
+              filename: linux-cli,
+              GOOS: linux,
+              GOARCH: amd64,
+            },
+            {
+              name: md_review,
+              filePath: ./md_review.exe,
+              filename: windows-cli,
+              GOOS: windows,
+              GOARCH: amd64,
+            },
+            {
+              name: md_review,
+              filePath: ./md_review,
+              filename: darwin-cli,
+              GOOS: darwin,
+              GOARCH: amd64,
+            },
+          ]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.21.6'
-
-    - name: Build
-      run: go build -v ./...
-
-    - name: Test
-      run: go test -v ./...
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.tag || 'main' }}
+      - name: Setup GoLang
+        uses: actions/setup-go@v5
+        with:
+          check-latest: true
+          cache: true
+          go-version: "1.21.6"
+      - name: Install UPX (for compressing binary)
+        run: |
+          sudo apt-get install -y upx
+      - name: Build
+        run: |
+          go mod tidy
+          GOOS=${{ matrix.build.GOOS }} GOARCH=${{ matrix.build.GOARCH}} CGO_ENABLED=0 go build -ldflags="-s -w" -o md_review.bin .
+      - name: Compress binary
+        # We skip compressing for macos because upx it doesnt support latest macos yet
+        if: matrix.build.GOOS != 'darwin'
+        run: |
+          upx --best --lzma -o ${{ matrix.build.filePath }} ./md_review.bin
+      - name: rename binary
+        if: matrix.build.GOOS == 'darwin'
+        run: |
+          mv md_review.bin ${{ matrix.build.filePath }}
+      - name: Zip binary
+        run: zip -r ${{ matrix.build.name }}-${{matrix.build.filename}}.zip ${{ matrix.build.filePath }}
+      - name: Upload binary
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.build.name }}-${{matrix.build.filename}}
+          path: ${{ matrix.build.name }}-${{matrix.build.filename}}.zip
+          retention-days: 1
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.tag || 'main' }}
+      - uses: actions/download-artifact@v4
+        with:
+          path: ${{ github.workspace }}
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          automatic_release_tag: ${{ github.event.client_payload.tag || 'latest' }}
+          prerelease: ${{ github.event.client_payload.tag == null }}
+          files: |
+            ./**/*.zip
