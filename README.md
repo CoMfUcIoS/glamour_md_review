@@ -1,5 +1,1 @@
 # Glamour markdown review
-
-
-
-
